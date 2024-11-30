@@ -87,37 +87,39 @@ class ListenerThread extends Thread {
         try {
             while (!isInterrupted() && clientConnection.isConnected()) {
                 if (clientConnection.dataInputStream != null && clientConnection.socket != null) {
-                    try {
-                        String message = clientConnection.receiveMessage();
-                        System.out.println("Server: " + message);
-                    } catch (SocketException e) {
-                        if (!clientConnection.isConnected()) {
-                            System.out.println("Listener thread stopping due to socket closure.");
-                            break;
-                        } else {
-                            throw e;
-                        }
-                    }
+                    String message = clientConnection.receiveMessage();
+                    System.out.println("Server: " + message);
                 } else {
-                    throw new Exception("The connection is not established");
+                    System.out.println("The connection is not established");
+                    break;
                 }
             }
-        } catch (Exception ex) {
-            if(ex instanceof InterruptedException){
-                System.out.println("Listener thread stopping due to interruption.");
-            }else{
-                System.out.println("Error from listener: " + ex.getMessage());
-                ex.printStackTrace();
+        } catch (SocketException e) {
+            if (!clientConnection.isConnected()) {
+                System.out.println("Listener thread stopping due to socket closure.");
+            } else {
+                System.out.println("SocketException in listener: " + e.getMessage());
+                e.printStackTrace();
             }
+        } catch (IOException e) {
+            System.out.println("IOException in listener: " + e.getMessage());
+            e.printStackTrace();
+        } catch (Exception e) {
+            System.out.println("Error from listener: " + e.getMessage());
+            e.printStackTrace();
         } finally {
             System.out.println("Listener thread stopping...");
-            try {
-                if (clientConnection.dataInputStream != null) clientConnection.dataInputStream.close();
-                if (clientConnection.dataOutputStream != null) clientConnection.dataOutputStream.close();
-                if (clientConnection.socket != null) clientConnection.socket.close();
-            } catch (IOException e) {
-                System.out.println("Error closing resources: " + e.getMessage());
-            }
+            closeResources();
+        }
+    }
+
+    private void closeResources() {
+        try {
+            if (clientConnection.dataInputStream != null) clientConnection.dataInputStream.close();
+            if (clientConnection.dataOutputStream != null) clientConnection.dataOutputStream.close();
+            if (clientConnection.socket != null) clientConnection.socket.close();
+        } catch (IOException e) {
+            System.out.println("Error closing resources: " + e.getMessage());
         }
     }
 
@@ -125,6 +127,7 @@ class ListenerThread extends Thread {
         interrupt();
     }
 }
+
 class SenderThread extends Thread {
     private final ClientConnection clientConnection;
 
@@ -134,32 +137,37 @@ class SenderThread extends Thread {
 
     @Override
     public void run() {
+        System.out.println("Sender thread started");
         try {
             while (!isInterrupted() && clientConnection.isConnected()) {
                 if (clientConnection.dataOutputStream != null && clientConnection.socket != null) {
                     String message = "Hello from the client";
                     clientConnection.sendMessage(message);
+                    System.out.println("Sent message: " + message);
                     sleep(3000);
                 } else {
-                    throw new Exception("The connection is not established");
+                    System.out.println("The connection is not established");
+                    break;
                 }
             }
-        } catch (Exception ex) {
-            if(ex instanceof InterruptedException){
-                System.out.println("Listener thread stopping due to interruption.");
-            }else{
-                System.out.println("Error from listener: " + ex.getMessage());
-                ex.printStackTrace();
-            }
+        } catch (InterruptedException e) {
+            System.out.println("Sender thread interrupted");
+        } catch (IOException e) {
+            System.out.println("Error from sender: " + e.getMessage());
+            e.printStackTrace();
         } finally {
             System.out.println("Sender thread stopping...");
-            try {
-                if (clientConnection.dataInputStream != null) clientConnection.dataInputStream.close();
-                if (clientConnection.dataOutputStream != null) clientConnection.dataOutputStream.close();
-                if (clientConnection.socket != null) clientConnection.socket.close();
-            } catch (IOException e) {
-                System.out.println("Error closing resources: " + e.getMessage());
-            }
+            closeResources();
+        }
+    }
+
+    private void closeResources() {
+        try {
+            if (clientConnection.dataInputStream != null) clientConnection.dataInputStream.close();
+            if (clientConnection.dataOutputStream != null) clientConnection.dataOutputStream.close();
+            if (clientConnection.socket != null) clientConnection.socket.close();
+        } catch (IOException e) {
+            System.out.println("Error closing resources: " + e.getMessage());
         }
     }
 
