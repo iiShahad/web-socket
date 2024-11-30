@@ -3,7 +3,6 @@ import java.io.*;
 import java.net.*;
 
 class ClientConnection {
-
     private String ipAddress;
     private int port;
     DataOutputStream dataOutputStream;
@@ -52,9 +51,6 @@ class ClientConnection {
     }
 
     public void sendMessage(String message) throws IOException {
-        if (!isConnected) {
-            connect(); // Attempt to reconnect if not connected
-        }
         try {
             dataOutputStream.writeUTF(message);
             System.out.println("Client: " + message);
@@ -64,10 +60,7 @@ class ClientConnection {
         }
     }
 
-    public String receiveMessage() throws IOException {
-        if (!isConnected) {
-            connect(); // Attempt to reconnect if not connected
-        }
+    public String receiveMessage() throws IOException { 
         try {
             return dataInputStream.readUTF();
         } catch (IOException ex) {
@@ -83,7 +76,6 @@ class ClientConnection {
 
 class ListenerThread extends Thread {
     private final ClientConnection clientConnection;
-    private volatile boolean running = true;
 
     public ListenerThread(ClientConnection clientConnection) {
         this.clientConnection = clientConnection;
@@ -93,13 +85,13 @@ class ListenerThread extends Thread {
     public void run() {
         System.out.println("Listener thread started");
         try {
-            while (running && !isInterrupted() && clientConnection.isConnected()) {
+            while (!isInterrupted() && clientConnection.isConnected()) {
                 if (clientConnection.dataInputStream != null && clientConnection.socket != null) {
                     try {
                         String message = clientConnection.receiveMessage();
                         System.out.println("Server: " + message);
                     } catch (SocketException e) {
-                        if (!running) {
+                        if (!clientConnection.isConnected()) {
                             System.out.println("Listener thread stopping due to socket closure.");
                             break;
                         } else {
@@ -130,13 +122,11 @@ class ListenerThread extends Thread {
     }
 
     public void stopListening() {
-        running = false;
         interrupt();
     }
 }
 class SenderThread extends Thread {
     private final ClientConnection clientConnection;
-    private volatile boolean running = true;
 
     public SenderThread(ClientConnection clientConnection) {
         this.clientConnection = clientConnection;
@@ -145,11 +135,10 @@ class SenderThread extends Thread {
     @Override
     public void run() {
         try {
-            while (running && !isInterrupted() && clientConnection.isConnected()) {
+            while (!isInterrupted() && clientConnection.isConnected()) {
                 if (clientConnection.dataOutputStream != null && clientConnection.socket != null) {
                     String message = "Hello from the client";
                     clientConnection.sendMessage(message);
-                    System.out.println("Sent message: " + message);
                     sleep(3000);
                 } else {
                     throw new Exception("The connection is not established");
@@ -175,7 +164,6 @@ class SenderThread extends Thread {
     }
 
     public void stopSending() {
-        running = false;
         interrupt();
     }
 }
@@ -192,7 +180,8 @@ public class Client {
             SenderThread senderThread = new SenderThread(clientConnection);
             senderThread.start();
 
-            Thread.sleep(10000);
+            //TODO: make the program run for 60 seconds
+            Thread.sleep(10000); // Run for 10 seconds, then stop
 
             listenerThread.stopListening();
             senderThread.stopSending();
