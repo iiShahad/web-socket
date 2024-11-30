@@ -3,6 +3,7 @@ import java.io.*;
 import java.net.*;
 
 class ClientConnection {
+
     private String ipAddress;
     private int port;
     DataOutputStream dataOutputStream;
@@ -28,7 +29,6 @@ class ClientConnection {
             System.out.println("Connected to the server");
         } catch (IOException ex) {
             System.out.println("Connection Error: " + ex.getMessage());
-            throw ex;
         }
     }
 
@@ -46,23 +46,31 @@ class ClientConnection {
             }
             System.out.println("Disconnected from the server");
         } catch (IOException ex) {
-            throw ex;
+            System.out.println("Disconnection Error: " + ex.getMessage());
         }
     }
 
     public void sendMessage(String message) throws IOException {
         try {
-            dataOutputStream.writeUTF(message);
-            System.out.println("Client: " + message);
+            if (isConnected) {
+                dataOutputStream.writeUTF(message);
+                System.out.println("Client: " + message);
+            } else {
+                throw new IOException("The connection is not established");
+            }
         } catch (IOException ex) {
             isConnected = false;
-            throw ex;
+            System.out.println("Error sending message: " + ex.getMessage());
         }
     }
 
-    public String receiveMessage() throws IOException { 
+    public String receiveMessage() throws IOException {
         try {
-            return dataInputStream.readUTF();
+            if(isConnected) {
+                return dataInputStream.readUTF();
+            } else {
+                throw new IOException("The connection is not established");
+            }
         } catch (IOException ex) {
             isConnected = false;
             throw ex;
@@ -75,6 +83,7 @@ class ClientConnection {
 }
 
 class ListenerThread extends Thread {
+
     private final ClientConnection clientConnection;
 
     public ListenerThread(ClientConnection clientConnection) {
@@ -115,9 +124,15 @@ class ListenerThread extends Thread {
 
     private void closeResources() {
         try {
-            if (clientConnection.dataInputStream != null) clientConnection.dataInputStream.close();
-            if (clientConnection.dataOutputStream != null) clientConnection.dataOutputStream.close();
-            if (clientConnection.socket != null) clientConnection.socket.close();
+            if (clientConnection.dataInputStream != null) {
+                clientConnection.dataInputStream.close();
+            }
+            if (clientConnection.dataOutputStream != null) {
+                clientConnection.dataOutputStream.close();
+            }
+            if (clientConnection.socket != null) {
+                clientConnection.socket.close();
+            }
         } catch (IOException e) {
             System.out.println("Error closing resources: " + e.getMessage());
         }
@@ -129,6 +144,7 @@ class ListenerThread extends Thread {
 }
 
 class SenderThread extends Thread {
+
     private final ClientConnection clientConnection;
 
     public SenderThread(ClientConnection clientConnection) {
@@ -163,9 +179,15 @@ class SenderThread extends Thread {
 
     private void closeResources() {
         try {
-            if (clientConnection.dataInputStream != null) clientConnection.dataInputStream.close();
-            if (clientConnection.dataOutputStream != null) clientConnection.dataOutputStream.close();
-            if (clientConnection.socket != null) clientConnection.socket.close();
+            if (clientConnection.dataInputStream != null) {
+                clientConnection.dataInputStream.close();
+            }
+            if (clientConnection.dataOutputStream != null) {
+                clientConnection.dataOutputStream.close();
+            }
+            if (clientConnection.socket != null) {
+                clientConnection.socket.close();
+            }
         } catch (IOException e) {
             System.out.println("Error closing resources: " + e.getMessage());
         }
@@ -177,6 +199,7 @@ class SenderThread extends Thread {
 }
 
 public class Client {
+
     public static void main(String[] args) {
         try {
             ClientConnection clientConnection = new ClientConnection();
