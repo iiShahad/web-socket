@@ -73,7 +73,8 @@ class ClientConnection {
             }
         } catch (IOException ex) {
             isConnected = false;
-            throw ex;
+            System.out.println("Error receiving message: " + ex.getMessage());
+            return null;
         }
     }
 
@@ -159,7 +160,6 @@ class SenderThread extends Thread {
                 if (clientConnection.dataOutputStream != null && clientConnection.socket != null) {
                     String message = "Hello from the client";
                     clientConnection.sendMessage(message);
-                    System.out.println("Sent message: " + message);
                     sleep(3000);
                 } else {
                     System.out.println("The connection is not established");
