@@ -1,6 +1,7 @@
 
 import java.io.*;
 import java.net.*;
+import java.util.Scanner;
 
 class ClientConnection {
 
@@ -66,7 +67,7 @@ class ClientConnection {
 
     public String receiveMessage() throws IOException {
         try {
-            if(isConnected) {
+            if (isConnected) {
                 return dataInputStream.readUTF();
             } else {
                 throw new IOException("The connection is not established");
@@ -154,10 +155,28 @@ class SenderThread extends Thread {
     @Override
     public void run() {
         System.out.println("Sender thread started");
+
         try {
             while (!isInterrupted() && clientConnection.isConnected()) {
+                String message = "";
                 if (clientConnection.dataOutputStream != null && clientConnection.socket != null) {
-                    String message = "Hello from the client";
+                    int selection = (int) (Math.random() * 5) + 1;
+                    switch (selection) {
+                        case 1:
+                            message = send();
+                            break;
+                        case 2:
+                            message = Max();
+                            break;
+                        case 3:
+                            message = Min();
+                            break;
+                        case 4:
+                            message = Recent((int) (Math.random() * 11) + 5);
+                            break;
+                        case 5:
+                            message = average((int) (Math.random() * 11) + 5);
+                    }
                     clientConnection.sendMessage(message);
                     System.out.println("Sent message: " + message);
                     sleep(3000);
@@ -193,6 +212,28 @@ class SenderThread extends Thread {
         }
     }
 
+    public String send() {
+        double randomNum = 15 + Math.random() * (40 - 15);
+        return "Send " + String.format("%.1f", randomNum);
+    }
+
+    public String Max() {
+        return "Max";
+    }
+
+    public String Min() {
+        return "Min";
+    }
+
+    public String Recent(int n) {
+        return "Recent " + n;
+
+    }
+
+    public String average(int n) {
+        return "Average " + n;
+    }
+
     public void stopSending() {
         interrupt();
     }
@@ -202,7 +243,19 @@ public class Client {
 
     public static void main(String[] args) {
         try {
-            ClientConnection clientConnection = new ClientConnection();
+            Scanner scanner = new Scanner(System.in);
+            int timeTOExcute = 0;
+
+            while (timeTOExcute < 60) {
+                System.out.print("Enter the execution time: ");
+                if (scanner.hasNextInt()) {
+                    timeTOExcute = scanner.nextInt();
+                    if (timeTOExcute < 60) {
+                        System.out.println("Try again, the excution time must be 60 or more");
+                    }
+                }
+            }
+            ClientConnection clientConnection = new ClientConnection("192.168.100.13", 5000);
             clientConnection.connect();
 
             ListenerThread listenerThread = new ListenerThread(clientConnection);
@@ -211,8 +264,7 @@ public class Client {
             SenderThread senderThread = new SenderThread(clientConnection);
             senderThread.start();
 
-            //TODO: make the program run for 60 seconds
-            Thread.sleep(10000); // Run for 10 seconds, then stop
+            Thread.sleep(timeTOExcute * 1000); // Run for a specific amount of time, then stop
 
             listenerThread.stopListening();
             senderThread.stopSending();
